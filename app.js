@@ -5,8 +5,8 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const encrypt = require('mongoose-encryption');
-
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 const app = express();
 
@@ -26,10 +26,8 @@ const userSchema = new mongoose.Schema({
   });
 
 
-// add secret and plugin before we use mongoose.model to create the schema
-const secret = process.env.SECRET
-// user excludeFromEncryption: ['nickname'] to exclude certain fields from encryption
-userSchema.plugin(encrypt, { secret: secret,  encryptedFields: ['password'] });
+
+
 
 // Creating the DB with the defined user
 const User = mongoose.model("User", userSchema);
@@ -48,26 +46,33 @@ app.get("/register", function(req,res){
 });
 
 app.post("/register", function(req,res){
-    const new_user = new User({
-        email: req.body.username,
-        password: req.body.password
-    })
-    new_user.save().then(savedDoc => {
-        if (savedDoc === new_user){
-            res.render("secrets")
-        } else{
-            console.log("Error")
-        }
-      });
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+        // Store hash in your password DB.
+        const new_user = new User({
+            email: req.body.username,
+            password: hash
+        })
+        new_user.save().then(savedDoc => {
+            if (savedDoc === new_user){
+                res.render("secrets")
+            } else{
+                console.log("Error")
+            }
+          });
+    });
+
 });
 
 app.post("/login", function(req,res){
     User.findOne({ email: req.body.username }).then((result) => {
-        if(req.body.username === result.email && result.password === req.body.password){
-            res.render("secrets");
-        } else {
-            res.redirect("/login")
-        }
+        bcrypt.compare(req.body.password, result.password, function(err, result) {
+            // result == true
+            if(result == true){
+                res.render("secrets");
+            } else {
+                res.redirect("/login")
+            }
+        });
       });
     
 })
