@@ -58,6 +58,8 @@ const User = mongoose.model("User", userSchema);
 //Exatly same position of code is required
 passport.use(User.createStrategy());
 
+
+//Exactly the same position should be maintained
 passport.serializeUser(function(user, cb) {
     process.nextTick(function() {
       return cb(null, {
@@ -94,6 +96,7 @@ app.get("/", function(req,res){
 });
 
 
+//check session by isAuthenticated to see if the current user is logged in
 app.get("/submit", function(req,res){
     if(req.isAuthenticated()){
         res.render("submit");
@@ -105,6 +108,8 @@ app.get("/submit", function(req,res){
 })
 
 
+
+// Use mongoose findByID and save the new date to that user
 app.post("/submit", function(req,res){
     const submit_secret = req.body.secret;
     User.findById(req.user.id).then((result) => {
@@ -119,9 +124,13 @@ app.post("/submit", function(req,res){
     });
 })
 
+
+//get trigerred bt the google auth2.0
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile'] }));
 
+
+  //Checks the user and if authenticated redirect to login page
 app.get('/auth/google/secrets', 
   passport.authenticate('google', { failureRedirect: '/login' }),
   function(req, res) {
@@ -129,21 +138,28 @@ app.get('/auth/google/secrets',
     res.redirect('/secrets');
   });
 
+
 app.get("/login", function(req,res){
     res.render("login")
 });
+
+
 
 app.get("/register", function(req,res){
     res.render("register")
 });
 
 
+
+//Only visisble if the users is authenticated and find all the object in the data base whone secret field is not null
 app.get("/secrets", function(req,res){
     User.find({"secret": {$ne:null}}).then((result)=>{
       res.render("secrets", {usersWithSecrets: result})
     })
 });
 
+
+//Using passport to manual registration with hash and 10 rounds of salting
 app.post("/register", function(req,res){
     User.register({username: req.body.username}, req.body.password, function(err,user){
         if(err){
@@ -158,6 +174,9 @@ app.post("/register", function(req,res){
 
 });
 
+
+
+//Get the username and password and matches them from the database with authenticate function
 app.post("/login", function(req,res){
    const new_user = new User ({
     username: req.body.username,
